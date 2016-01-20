@@ -1,0 +1,79 @@
+#!/usr/bin/python
+import commands,re,os
+import datetime
+import time
+
+#####
+"""
+step one, find out instance ids and get thier volumes
+then find out the snapshots of each volume ids.
+Which is the latest snapshot
+is it older than 7days ??
+"""
+####
+
+def get_vol_details():
+  ins_id = ['i-5df6358b','i-34bb4719']
+  vol_result = []
+  aws_cmd = "aws ec2 describe-volumes --profile recall --filters Name=attachment.instance-id,Values=%s"
+  for each_id in ins_id:
+    vol_list = []
+    output = commands.getoutput(aws_cmd % each_id)
+    vol_list.append(each_id)
+    #lines = output.split("\n")
+    lines = output.splitlines()
+    for each_line in lines:
+      if each_line.startswith("ATTACHMENTS"):
+        #print "line: ", each_line
+        vol_id = each_line.split()[-1]
+        vol_list.append(vol_id)
+    vol_result.append(vol_list)
+  return vol_result
+
+def get_snap_details():
+  snap_result = []
+  aws_cmd = """ aws ec2 describe-snapshots --profile recall --filters "Name=status,Values=completed" "Name=volume-id,Values=%s" --query "Snapshots[*].[StartTime,SnapshotId,VolumeId]" """
+  vol_ids = get_vol_details()
+  #print vol_ids
+  for i in range(0, len(vol_ids)):
+    vol_list = vol_ids[i]
+    for j in range(1, len(vol_list)):
+      snap_list = []
+      instance_id = vol_ids[i][0]
+      volume_id = vol_ids[i][j]
+      #print "volume id: ", volume_id
+      snap_list.insert(0,instance_id)
+      output = commands.getoutput(aws_cmd % volume_id)
+      lines = output.splitlines()
+      lines.sort()
+      last_one = lines[-1]
+      #print "last line: ", last_one
+      snap_items = last_one.split()
+      snap_list.append(snap_items[0])
+      snap_list.append(snap_items[1])
+      snap_list.append(snap_items[2])
+      snap_result.append(snap_list)
+  return snap_result
+  
+  def check_date(s):
+  today = time.strftime("%Y-%m-%d")
+  bkup_day = s[:10]
+  date_format = '%Y-%m-%d'
+  bkup_day = datetime.datetime.strptime(bkup_day, date_format)
+  today = datetime.datetime.strptime(today, date_format)
+  diff = abs(today - bkup_day).days
+  return diff
+
+def check_latest():
+  new_list = get_snap_details()
+  for each in new_list:
+    days = check_date(each[1])
+    if days == 0:
+      print "Alert %s" % each[0]
+    else:
+      print "All good. %s" % each[2]
+  return None
+
+#print test_list()
+#print check_date('2015-10-09T05:02:59.000Z')
+print get_snap_details()
