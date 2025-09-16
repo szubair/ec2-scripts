@@ -1,18 +1,20 @@
 #!python3
 
-y = [1,10,88,2,5,50]
-print('my numbers:', y)
+x = [1,10,88,2,5,50,15]
+print('my numbers:', x)
 
-x = []
-ylen = len(y)
-i = 0
-while ylen - 1 > i:
-    x = y
-    print('my list:', x)
-    print('A:',x[i], 'B:', x[i+1])
-    if x[i] < x[i+1]:
+xlen = len(x)
+swapped = True
+
+while swapped:
+  swapped = False
+  i = 0
+  while i < xlen - 1:
+    print('compare>>' + 'A:', x[i], 'B:', x[i+1])
+    if x[i] > x[i+1]:
         x[i], x[i+1] = x[i+1],x[i]
-    
+        swapped = True
+        print('swapped - true')
     i = i + 1
 
 print('sorted:', x)
