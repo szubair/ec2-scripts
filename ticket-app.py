@@ -15,7 +15,6 @@ RENAME_MAPPING = {
     "TerminalClass": "Standard Merchant",
     "City": "City Name",
     "Within/Outside City": "Within Outside City",
-    "Fault Category": "Fault Category",
     "Ticket Type": "Call Type Detail"
 }
 
@@ -29,7 +28,6 @@ OUTPUT_COLUMNS = [
     "Standard Merchant",
     "City Name",
     "Within Outside City",
-    "Fault Category",
     "Call Type Detail",
     "Ticket Open Date",
     "Ticket Open Time",
@@ -61,7 +59,7 @@ def upload_file():
 
         try:
             # Read the Excel file, specifying the header on the 15th row (index 14)
-            df = pd.read_excel(file_path, header=14)
+            df = pd.read_excel(file_path, header=16)
 
             # Check for missing columns before processing
             missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
@@ -69,7 +67,7 @@ def upload_file():
                 return f"Error: The following required columns are missing from the Excel sheet: {', '.join(missing_cols)}"
 
             # Convert 'TerminalId' column to integer to remove '.0'
-            df['TerminalId'] = df['TerminalId'].astype(int)
+            df['TerminalId'] = df['TerminalId'].astype('Int64')
 
             # Filter the DataFrame based on a partial string match
             filtered_df = df[df['Ticket Type'].str.contains(ticket_type, case=False, na=False)]
