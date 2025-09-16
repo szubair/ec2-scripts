@@ -32,7 +32,8 @@ OUTPUT_COLUMNS = [
     "Ticket Open Date",
     "Ticket Open Time",
     "Ticket Close Date",
-    "Ticket Close Time"
+    "Ticket Close Time",
+    "Fulfilment Time"
 ]
 
 @app.route('/')
@@ -58,18 +59,14 @@ def upload_file():
         file.save(file_path)
 
         try:
-            # Read the Excel file, specifying the header on the 15th row (index 14)
-            df = pd.read_excel(file_path, header=16)
+            df = pd.read_excel(file_path, header=14)
 
-            # Check for missing columns before processing
             missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
             if missing_cols:
                 return f"Error: The following required columns are missing from the Excel sheet: {', '.join(missing_cols)}"
 
-            # Convert 'TerminalId' column to integer to remove '.0'
             df['TerminalId'] = df['TerminalId'].astype('Int64')
 
-            # Filter the DataFrame based on a partial string match
             filtered_df = df[df['Ticket Type'].str.contains(ticket_type, case=False, na=False)]
             
             if filtered_df.empty:
@@ -79,30 +76,44 @@ def upload_file():
                     <br><a href="/">Back to Home</a>
                 """
 
-            # Select and rename columns as before
             selected_df = filtered_df[REQUIRED_COLUMNS]
 
-            selected_df['Last Update Date'] = pd.to_datetime(selected_df['Last Update Date'])
-            selected_df['Last Response Date'] = pd.to_datetime(selected_df['Last Response Date'])
+            # Convert date columns to datetime objects and round them to the nearest second
+            selected_df['Last Update Date'] = pd.to_datetime(selected_df['Last Update Date']).dt.round('S')
+            selected_df['Last Response Date'] = pd.to_datetime(selected_df['Last Response Date']).dt.round('S')
 
+            # Split 'Last Update Date' into 'Ticket Open Date' and 'Ticket Open Time'
             selected_df['Ticket Open Date'] = selected_df['Last Update Date'].dt.date
             selected_df['Ticket Open Time'] = selected_df['Last Update Date'].dt.time
+
+            # Split 'Last Response Date' into 'Ticket Close Date' and 'Ticket Close Time'
             selected_df['Ticket Close Date'] = selected_df['Last Response Date'].dt.date
             selected_df['Ticket Close Time'] = selected_df['Last Response Date'].dt.time
             
+            # Calculate Fulfillment Time and round it to the nearest second
+            selected_df['Fulfilment Time'] = selected_df['Last Response Date'] - selected_df['Last Update Date']
+            
             final_df = selected_df.drop(columns=["Last Update Date", "Last Response Date"])
             final_df = final_df.rename(columns=RENAME_MAPPING)
+            
             final_df = final_df[OUTPUT_COLUMNS]
 
             # Convert the final DataFrame to HTML
             final_html = final_df.head(100).to_html(classes='table table-striped')
 
-            return f"""
+            styled_html = f"""
+                <style>
+                    .table-striped th {{
+                        text-align: center;
+                    }}
+                </style>
                 <h1>Filtered Results for '{ticket_type}'</h1>
                 <p>Showing the first 100 matching rows with selected and renamed columns.</p>
                 {final_html}
                 <br><a href="/">Back to Home</a>
             """
+
+            return styled_html
 
         except Exception as e:
             return f"An error occurred: {e}"
