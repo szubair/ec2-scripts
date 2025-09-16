@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, session, redirect, url_for
 import os
 import secrets
 import uuid
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -53,6 +54,7 @@ def format_fulfilment_time(td):
     
     minutes = (remaining_seconds % 3600) // 60
     seconds = remaining_seconds % 60
+    
     return f"{business_hours} hours, {minutes} minutes, {seconds} seconds"
 
 @app.route('/')
@@ -94,10 +96,10 @@ def upload_file():
                     <p>No records were found for the selected bank name: '{bank_name}' and ticket type: '{ticket_type}'.</p>
                     <br><a href="/">Back to Home</a>
                 """
-            selected_df = filtered_df[required_cols_with_bank]
+            selected_df = filtered_df[required_cols_with_bank].copy()
             
-            selected_df['Last Update Date'] = pd.to_datetime(selected_df['Last Update Date'], infer_datetime_format=True, errors='coerce').dt.round('S')
-            selected_df['Last Response Date'] = pd.to_datetime(selected_df['Last Response Date'], infer_datetime_format=True, errors='coerce').dt.round('S')
+            selected_df['Last Update Date'] = pd.to_datetime(selected_df['Last Update Date'], errors='coerce').dt.round('s')
+            selected_df['Last Response Date'] = pd.to_datetime(selected_df['Last Response Date'], errors='coerce').dt.round('s')
             
             selected_df['Ticket Open Date'] = selected_df['Last Update Date'].dt.date
             selected_df['Ticket Open Time'] = selected_df['Last Update Date'].dt.time
@@ -143,6 +145,7 @@ def display_results():
         return f"Error: Session data not found. Please re-upload the file."
 
     page = request.args.get('page', 1, type=int)
+    
     df = pd.read_json(processed_path)
     
     total_records = len(df)
@@ -150,9 +153,10 @@ def display_results():
     
     start = (page - 1) * RECORDS_PER_PAGE
     end = start + RECORDS_PER_PAGE
-    paginated_df = df.iloc[start:end]
-    table_html = paginated_df.to_html(classes='table table-striped')
     
+    paginated_df = df.iloc[start:end]
+    
+    table_html = paginated_df.to_html(classes='table table-striped')
     return render_template('results.html',
                            table_html=table_html,
                            bank_name=session.get('bank_name', 'N/A'),
