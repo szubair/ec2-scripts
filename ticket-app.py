@@ -1,110 +1,117 @@
 import pandas as pd
-from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
-from datetime import datetime
+from flask import Flask, render_template, request
+import os
 
-filename = "BankClosedTicketReport - 2025-08-28T113909.770.xlsx"
-ticket_type = "Consumable"
+app = Flask(__name__)
 
-# Get current date and time
-now = datetime.now()
-timestamp_str = now.strftime("%Y%m%d_%H%M%S")  # e.g., 20250901_141530
-# Dynamic output file name
-output_file = f"sla_report_{timestamp_str}.xlsx"
+# Configure a temporary folder to store uploaded files
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# 1. Read Excel file
-df = pd.read_excel(filename, header=16, nrows=15)
-
-# 2. Columns to select
-columns_to_print = [
-    "TerminalId", "Retailer Name", "TerminalClass", "City",
-    "Fault Category", "Within/Outside City",
-    "Last Update Date", "Ticket Type", "Last Response Date"
-]
-
-# 3. Rename mapping
-rename_mapping = {
+# Define the specific columns to display and their new names
+RENAME_MAPPING = {
     "TerminalId": "Terminal ID",
     "Retailer Name": "Merchant Name",
     "TerminalClass": "Standard Merchant",
     "City": "City Name",
-    "Last Update Date": "Created On",
     "Within/Outside City": "Within Outside City",
-    "Ticket Type": "Call Type Detail",
-    "Last Response Date": "Last Response"
+    "Fault Category": "Fault Category",
+    "Ticket Type": "Call Type Detail"
 }
 
-# 4. Select and rename
-selected = df[columns_to_print].rename(columns=rename_mapping).copy()
+# Create a list of the required columns based on the dictionary keys, plus the date columns
+REQUIRED_COLUMNS = list(RENAME_MAPPING.keys()) + ["Last Update Date", "Last Response Date"]
 
-# 5. Filter by ticket type
-selected_df = selected[selected["Call Type Detail"].str.contains(ticket_type, case=False)].copy()
+# Define the final output column order and names
+OUTPUT_COLUMNS = [
+    "Terminal ID",
+    "Merchant Name",
+    "Standard Merchant",
+    "City Name",
+    "Within Outside City",
+    "Fault Category",
+    "Call Type Detail",
+    "Ticket Open Date",
+    "Ticket Open Time",
+    "Ticket Close Date",
+    "Ticket Close Time"
+]
 
-# 6. Convert to datetime
-selected_df["Created On"] = pd.to_datetime(selected_df["Created On"]).dt.ceil("s")
-selected_df["Last Response"] = pd.to_datetime(selected_df["Last Response"]).dt.ceil("s")
+@app.route('/')
+def index():
+    """Renders the file upload and filter form."""
+    return render_template('index.html')
 
-# 7. Split Created On
-selected_df["Ticket Open Date"] = selected_df["Created On"].dt.date
-selected_df["Ticket Open Time"] = selected_df["Created On"].dt.time
-#selected_df["Ticket Open Time Ceil"] = selected_df["Created On"].dt.ceil("S").dt.time
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handles file upload, filters rows, selects columns, and renames headers."""
 
-# 8. Split Last Response
-selected_df["Last Response Date"] = selected_df["Last Response"].dt.date
-selected_df["Last Response Time"] = selected_df["Last Response"].dt.time
-#selected_df["Last Response Time Ceil"] = selected_df["Last Response"].dt.ceil("S").dt.time
+    if 'excel_file' not in request.files:
+        return 'No file part'
 
-# 9. Calculate Business-Day Fulfillment (1 business day = 15 hours)
-business_hours_per_day = 15
+    file = request.files['excel_file']
+    ticket_type = request.form.get('ticket_type')
 
-def format_business_timedelta(td, business_hours=15):
-    total_seconds = int(td.total_seconds())
-    total_hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
+    if file.filename == '':
+        return 'No selected file'
 
-    # Convert total hours into business days
-    business_days = total_hours // business_hours
-    remaining_hours = total_hours % business_hours
+    if file and ticket_type:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(file_path)
 
-    return f"{business_days} days {remaining_hours:02}:{minutes:02}:{seconds:02}"
+        try:
+            # Read the Excel file, specifying the header on the 15th row (index 14)
+            df = pd.read_excel(file_path, header=14)
 
-# --- Fulfillment Time calculations ---
-# 2. Business-day timedelta (15h = 1 day)
-selected_df["Fulfillment Time"] = (selected_df["Last Response"] - selected_df["Created On"])\
-    .apply(lambda x: format_business_timedelta(x, business_hours_per_day))
+            # Check for missing columns before processing
+            missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+            if missing_cols:
+                return f"Error: The following required columns are missing from the Excel sheet: {', '.join(missing_cols)}"
 
-# 11. Final column order
-final_columns = [
-    "Terminal ID", "Merchant Name", "Standard Merchant", "City Name",
-    "Within Outside City", "Ticket Open Date", "Ticket Open Time", "Call Type Detail",
-    "Last Response Date", "Last Response Time", "Fulfillment Time"
-    ]
+            # Convert 'TerminalId' column to integer to remove '.0'
+            df['TerminalId'] = df['TerminalId'].astype(int)
 
-final_df = selected_df[final_columns]
+            # Filter the DataFrame based on a partial string match
+            filtered_df = df[df['Ticket Type'].str.contains(ticket_type, case=False, na=False)]
+            
+            if filtered_df.empty:
+                return f"""
+                    <h1>No Records Found</h1>
+                    <p>No records were found for the selected ticket type: '{ticket_type}'.</p>
+                    <br><a href="/">Back to Home</a>
+                """
 
-# 12. Print final report
-# print("\n=== Final SLA Report ===\n")
-#   print(final_df.to_string(index=False))
+            # Select and rename columns as before
+            selected_df = filtered_df[REQUIRED_COLUMNS]
 
-# Export to Excel
-final_df.to_excel(output_file, index=False)
+            selected_df['Last Update Date'] = pd.to_datetime(selected_df['Last Update Date'])
+            selected_df['Last Response Date'] = pd.to_datetime(selected_df['Last Response Date'])
 
-# Load workbook to adjust column widths
-wb = load_workbook(output_file)
-ws = wb.active
+            selected_df['Ticket Open Date'] = selected_df['Last Update Date'].dt.date
+            selected_df['Ticket Open Time'] = selected_df['Last Update Date'].dt.time
+            selected_df['Ticket Close Date'] = selected_df['Last Response Date'].dt.date
+            selected_df['Ticket Close Time'] = selected_df['Last Response Date'].dt.time
+            
+            final_df = selected_df.drop(columns=["Last Update Date", "Last Response Date"])
+            final_df = final_df.rename(columns=RENAME_MAPPING)
+            final_df = final_df[OUTPUT_COLUMNS]
 
-for col in ws.columns:
-    max_length = 0
-    column = col[0].column  # Get column number
-    column_letter = get_column_letter(column)
-    for cell in col:
-        if cell.value:
-            max_length = max(max_length, len(str(cell.value)))
-    ws.column_dimensions[column_letter].width = max_length + 2  # extra padding
+            # Convert the final DataFrame to HTML
+            final_html = final_df.head(100).to_html(classes='table table-striped')
 
-# Save workbook
-wb.save(output_file)
-print(f"Report exported to '{output_file}' successfully!")
+            return f"""
+                <h1>Filtered Results for '{ticket_type}'</h1>
+                <p>Showing the first 100 matching rows with selected and renamed columns.</p>
+                {final_html}
+                <br><a href="/">Back to Home</a>
+            """
 
+        except Exception as e:
+            return f"An error occurred: {e}"
 
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+if __name__ == '__main__':
+    app.run(debug=True)
