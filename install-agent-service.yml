@@ -1,0 +1,33 @@
+---
+- name: Install Linux Agent
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Ensure agent directory exists
+      ansible.builtin.file:
+        path: /tmp/uems
+        state: directory
+        mode: '0755'
+    - name: Copy agent zip file to remote host
+      ansible.builtin.copy:
+        src: ./LinuxAgent.zip
+        dest: /tmp/LinuxAgent.zip
+    - name: Unzip the agent file
+      ansible.builtin.unarchive:
+        src: /tmp/LinuxAgent.zip
+        dest: /tmp/
+        remote_src: yes
+    - name: Make the installer executable
+      ansible.builtin.file:
+        path: /tmp/LinuxAgent.bin
+        mode: '0755'
+    - name: Run the ManageEngine agent installer
+      ansible.builtin.command: ./LinuxAgent.bin
+      args:
+        chdir: /tmp/
+        creates:
+    - name: Cleanup temp install files
+      ansible.builtin.file:
+        path: /tmp/
+        state: absent
