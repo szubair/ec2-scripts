@@ -1,0 +1,23 @@
+#ansible-playbook passwd-change.yml --ask-vault-pass
+#
+- name: Password Change
+  hosts: all
+  gather_facts: no  # Gather facts from all hosts
+  remote_user: admin
+  become: yes   # needed to change user password
+  vars_files:
+    - vault-passwd.yml
+  vars:
+    test_user: testuser
+  tasks:
+    - name: check ICMP
+      ping:
+      register: ping_result
+    - name: Change password "{{ test_user }}" with password
+      user:
+        name: "{{ test_user }}"
+        password: "{{ test_user_password }}"
+      register: passwd_change
+    - name: Show the result
+      debug:
+        var: passwd_change
