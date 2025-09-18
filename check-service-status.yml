@@ -1,0 +1,32 @@
+
+#ansible-playbook passwd-change.yml -k
+#
+- name: Check service status
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+    - name: Check if a service is running and print its status
+      ansible.builtin.debug:
+        msg: "The Service for Linux Agent is currently {{ ansible_facts.services['dcservice.service'].state }}"
+      when:
+        - "'dcservice.service' in ansible_facts.services"
+        - "ansible_facts.services['dcservice.service'].state is defined"
+    - name: Print a message if the service is not found
+      ansible.builtin.debug:
+        msg: "The dcservice was not found on this host."
+      when: "'dcservice.service' not in ansible_facts.services"
+    - name: Check Reachability on port 8383
+      block:
+        - name: Wait for port 8383 to be reachable
+          ansible.builtin.wait_for:
+            host: x.x.x.x
+            port: 8383
+            state: started
+            timeout: 3
+      rescue:
+        - name: Handle timeout or connection failure
+          ansible.builtin.debug:
+            msg: "Failed to connect to EndpointCentral at x.x.xx on port 8383."
