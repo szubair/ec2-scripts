@@ -1,0 +1,28 @@
+#ansible-playbook passwd-change.yml -k
+#
+- name: Create Linux user
+  hosts: all
+  gather_facts: no  # Gather facts from all hosts
+  remote_user: admin
+  become: yes   # needed to change user password
+  vars:
+    test_user: testuser
+    test_password_plain: "MyTestPass123"
+    test_password_hashed: "{{ test_password_plain | password_hash('sha512') }}"
+    sudo_group: sudo
+  tasks:
+  - name: check ICMP
+    ping:
+    register: ping_result
+  - name: Ensure sudo group exists (for RHEL/CentOS)
+    group:
+      name: "{{ sudo_group }}"
+      state: present
+  - name: Create user "{{ test_user }}" with password
+    user:
+      name: "{{ test_user }}"
+      password: "{{ test_password_hashed }}"
+      shell: /bin/bash
+      create_home: yes
+      groups: "{{ sudo_group }}"
+      append: yes
