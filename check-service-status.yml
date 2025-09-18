@@ -18,6 +18,17 @@
       ansible.builtin.debug:
         msg: "The dcservice was not found on this host."
       when: "'dcservice.service' not in ansible_facts.services"
+    - name: Checking subnet 10.0.14.x
+      when: ansible_default_ipv4.address is match("10.0.14.*")
+      block:
+        - name: Check for the existing host route
+          ansible.builtin.shell: ip route show | grep "x.x.x.x"
+          register: check_route
+          failed_when: false
+          changed_when: false
+        - name: Add the host route if it doesn't exist
+          ansible.builtin.command: ip route add 10.x.x.x/32 via x.x.x.x
+          when: check_route.rc != 0
     - name: Check Reachability on port 8383
       block:
         - name: Wait for port 8383 to be reachable
