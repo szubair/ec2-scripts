@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Excel File and Filter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Generate your SLA Report.</h1>
+    <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
+        <label for="excel_file">Choose Excel File:</label>
+        <input type="file" name="excel_file" id="excel_file" accept=".xlsx, .xls">
+
+        <label for="bank_name">Select Bank Name:</label>
+        <select name="bank_name" id="bank_name">
+            <option value="ALBI">ALBI</option>
+            <option value="ALPH1">ALPH 1</option>
+            <option value="ALPH2">ALPH 2</option>
+            <option value="ANBB">ANBB</option>
+            <option value="RYDH">RYDH</option>
+            <option value="INMA">INMA</option>
+            <option value="BSFB">BSFB</option>
+            <option value="JAZB">JAZB</option>
+            <option value="SABB">SABB</option>
+            <option value="SAMA">SAMA</option>
+            <option value="SNBA">SNBA</option>
+            <option value="SNBB">SNBB</option>
+        </select>
+
+        <label for="ticket_type">Select Ticket Type:</label>
+        <select name="ticket_type" id="ticket_type">
+            <option value="Maintenance">Maintenance</option>
+            <option value="Installation">Installation</option>
+            <option value="Consumable">Consumable (Paper)</option>
+            <option value="Cancellation/Pull-out/Relocation">Cancellation/Pull-out/Relocation</option>
+        </select>
+
+        <input type="submit" value="Upload and Process">
+    </form>
+</body>
+</html>
