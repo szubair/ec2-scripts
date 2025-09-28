@@ -1,0 +1,153 @@
+/* General body and heading styles */
+body {
+    font-family: Arial, sans-serif;
+    color: #333;
+    margin: 20px;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    text-align: center;
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    /*margin-bottom: 30px; Adjust as needed */
+}
+
+p {
+    text-align: center;
+    color: #666;
+}
+
+/* Styles for the form on index.html */
+form {
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    width: 400px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    text-align: left;
+}
+
+input[type="file"],
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensures padding doesn't affect the width */
+}
+
+input[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    transition: background-color 0.3s ease;
+}
+
+input[type="submit"]:hover {
+    background-color: #45a049;
+}
+
+/* Styles for the results table on results.html */
+.info-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    /*margin-top: 20px;
+    margin-bottom: 20px;*/
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.info-item {
+    background-color: #ecf0f1;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.info-item strong {
+    color: #34495e;
+}
+
+.table-striped {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.85em;
+}
+
+.table-striped th,
+.table-striped td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.table-striped th {
+    background-color: #34495e;
+    color: white;
+    text-align: center;
+}
+
+.table-striped tbody tr:nth-child(odd) {
+    background-color: #f2f2f2;
+}
+
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination a {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    color: #337ab7;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.pagination a.active {
+    background-color: #4CAF50;
+    color: white;
+    border: 1px solid #4CAF50;
+    cursor: default;
+}
+
+.pagination a:hover:not(.active) {
+    background-color: #ddd;
+    color: #000;
+}
+
+a[href="/"] {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #337ab7;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+a[href="/"]:hover {
+    text-decoration: underline;
+}
